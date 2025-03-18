@@ -4,9 +4,18 @@ const _ = require('lodash')
 
 
 exports.create = (req,res,next)=>{
-    if(!validateProject(req.body)){
-        res.status(400).send("Send all Data")
+    if(validateProject(req.body).isEmpty===true){
+        const error = new Error("Send all Data")
+        error.status = 400
+        next(error)
         return
+    }
+    if(validateProject(req.body).isInvalid===true){
+        const error = new Error("Send Correct Data Format")
+        error.status = 400
+        next(error)
+        return
+    
     }
     let projectData = {
         name : req.body.name,
@@ -32,9 +41,9 @@ exports.create = (req,res,next)=>{
 exports.getAll = (req,res,next)=>{
     models.getAllProject((err,result)=>{
         if(err){
-            next(err)
+            return next(err)
         }else{
-            res.send(result)
+            res.status(200).json(result)
         }
     })
 
@@ -59,12 +68,24 @@ exports.getOne =(req,res,next)=>{
 
 exports.updateOne = (req,res,next)=>{
     const id = parseInt(req.params.id)
-    if(!validateProject(req.body)){
-        console.log("Data not validated");
-        const error = new Error("Please give correct and all details")
+    if(isNaN(id)){
+        const error = new Error("Invalid ID")
         error.status = 400
         next(error)
         return
+    }
+    if(validateProject(req.body).isEmpty===true){
+        const error = new Error("Send all Data")
+        error.status = 400
+        next(error)
+        return
+    }
+    if(validateProject(req.body).isInvalid===true){
+        const error = new Error("Send Correct Data Format")
+        error.status = 400
+        next(error)
+        return
+    
     }
     let projectData = {
         name : req.body.name,
@@ -160,20 +181,41 @@ exports.updateIsFavourite = (req,res,next)=>{
 
 
 
-
-
-
 function validateProject(requestData){
     console.log(requestData);
-    if( requestData===null || requestData===undefined || _.isEmpty(requestData)){
-        return false
+    let result = {
+        isInvalid:null,
+        isEmpty : null,
     }
-    return true
+    if(_.isEmpty(requestData)){
+        result.isEmpty = true
+        return result
+    }
+    
+    for(let i in requestData){
+        if(i==='' || i===null || i ===undefined){
+            result.isEmpty = true
+            return result
+        }
+    }
+    if(typeof(requestData.name)!=='string'){
+        result.isInvalid = true
+        return result
+    }
+    if(typeof(requestData.color)!=='string'){
+        result.isInvalid = true
+        return result
+    }
+    if(requestData.is_favourite!=='0' && requestData.is_favourite!=='1'){
+        result.isInvalid = true
+        return result
+    }
+    return result
 }
 
-function validateId(id){
-    if(isNaN(id)){
-        return false
-    }
-    return true
-}
+// function validateId(id){
+//     if(isNaN(id)){
+//         return false
+//     }
+//     return true
+// }

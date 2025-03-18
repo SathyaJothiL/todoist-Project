@@ -3,11 +3,18 @@ const _ = require('lodash')
 
 exports.createTask = (req,res,next)=>{
     let id = parseInt(req.params.id)
-    if(!validateTask(req.body)){
-        const error = new Error("Please provide correct or all details of task")
+    if(validateTask(req.body).isEmpty===true){
+        const error = new Error("Send all Data")
         error.status = 400
         next(error)
         return
+    }
+    if(validateTask(req.body).isInvalid===true){
+        const error = new Error("Send Correct Data Format")
+        error.status = 400
+        next(error)
+        return
+    
     }
     if(!validateId(id)){
         const error = new Error("Please provide valid ID")
@@ -49,11 +56,18 @@ exports.editTask = (req,res,next)=>{
         next(error)
         return
     }
-    if(!validateTask(req.body)){
-        const error = new Error("Please provide correct or all details of task")
+    if(validateTask(req.body).isEmpty===true){
+        const error = new Error("Send all Data")
         error.status = 400
         next(error)
         return
+    }
+    if(validateTask(req.body).isInvalid===true){
+        const error = new Error("Send Correct Data Format")
+        error.status = 400
+        next(error)
+        return
+    
     }
     let taskData = {
         content: req.body.content,
@@ -127,7 +141,12 @@ exports.getTaskByProjectId = (req,res,next)=>{
 
     let id = parseInt(req.params.id)
     console.log(id);
-    
+    if(!validateId(id)){
+        const error = new Error("Please provide valid Project Id")
+        error.status = 400
+        next(error)
+        return
+    }
 
     models.taskByProjectId(id,(err,result)=>{
         if(err){
@@ -213,24 +232,37 @@ exports.getTaskByCreatedAt = (req,res,next)=>{
 }
 
 
-
-
-
-
-
-
-// let a = {a:4}
-// let b = {c:'sfddf',d:'sdff'}
-// let o = {...a, ...b}
-// console.log(o);
-
-
 function validateTask(requestData){
-    console.log(requestData);
-    if(requestData===null || requestData===undefined || _.isEmpty(requestData)){
-        return false
-    }
-    return true
+     console.log(requestData);
+        let result = {
+            isInvalid:null,
+            isEmpty : null,
+        }
+        if(_.isEmpty(requestData)){
+            result.isEmpty = true
+            return result
+        }
+        
+        for(let i in requestData){
+            if(i==='' || i===null || i ===undefined){
+                result.isEmpty = true
+                return result
+            }
+        }
+        if(typeof(requestData.content)!=='string' && typeof(requestData.description)!=='string'){
+            result.isInvalid = true
+            return result
+        }
+        if(requestData.is_completed!=='0' && requestData.is_completed!=='1'){
+            result.isInvalid = true
+            return result
+        }
+        let regex = /^202[5-9]-(0[1-9]|1[0-2])-(0[1-9]|1[0-9])|2[0-9]|3[0-1]/
+        if((!requestData.created_at.match(regex)) && (!requestData.due_date.match(regex))){
+            result.isInvalid = true
+            return result
+        }
+        return result
 }
 
 function validateId(id){
