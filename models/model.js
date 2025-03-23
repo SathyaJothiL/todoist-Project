@@ -1,261 +1,147 @@
-const { callbackify } = require("util");
-const connection = require("./connectDatabase");
-const { result } = require("lodash");
+import db from "./connectDatabase.js";
+import { eq, sql, lt, and } from "drizzle-orm";
+import {
+  mysqlTable,
+  varchar,
+  boolean,
+  serial,
+  int,
+  text,
+  tinyint,
+  date,
+} from "drizzle-orm/mysql-core";
+import { users, tasks, projects } from "./tableDefinitions.js";
+import e from "express";
 
-exports.createProject = (projectData, callback) => {
-  let query = "INSERT INTO PROJECTS(NAME_,COLOR,IS_FAVOURITE) VALUES(?,?,?)";
-  connection.query(
-    query,
-    [projectData.name, projectData.color, projectData.is_favourite],
-    (err, result) => {
-      if (err) {
-        console.log(err.message);
-        console.log("Couln't insert into the Database");
-        callback(err, null);
-        return;
-      }
-      if (result.affectedRows === 0) {
-        console.log("Zero rows affected");
-        callback({ kind: "notFound" }, null);
-        return;
-      }
-      console.log("Inserted into the database");
-      callback(null, projectData);
-    }
-  );
+export const getOne = async (projectId) => {
+  const result = db.select().from(projects).where(eq(projects.id, projectId));
+  return result;
 };
 
-exports.getAllProject = (callback) => {
-  let query = `SELECT * FROM PROJECTS`;
-  connection.query(query, [], (err, rows, fileds) => {
-    if (err) {
-      console.log("Error retrieving all Projects from Database");
-      console.log(err.message);
-      callback(err, null);
-      return;
-    }
-    console.log("Data retrieved from Project database");
-    callback(null, rows);
-  });
+export const createOne = async (projectData) => {
+  const result = await db.insert(projects).values(projectData).$returningId();
+  console.log(result);
+  return result;
 };
 
-exports.getOneProject = (id, callback) => {
-  let query = `SELECT * FROM PROJECTS WHERE ID = ${id}`;
-  connection.query(query, [], (err, rows) => {
-    if (err) {
-      console.log(err.message);
-      console.log(`"Error getting the data with id ${id}"`);
-      callback(err, null);
-      return;
-    }
-    if (rows.length === 0) {
-      console.log("No rows affected");
-      callback({ kind: "notFound" }, null);
-      return;
-    }
-    console.log(`"Project with Id ${id} retrieved successfully"`);
-    callback(null, rows);
-  });
+export const updateOne = async (id, projectData) => {
+  const result = await db
+    .update(projects)
+    .set(projectData)
+    .where(eq(projects.id, id));
+  console.log(result);
+  return result;
 };
 
-exports.updateOneProject = (id,projectData, callback) => {
-  let sql = `UPDATE PROJECTS
-    SET NAME_=?,
-        COLOR = ?,
-        IS_FAVOURITE=?
-    WHERE ID = ?`;
-
-  connection.query(
-    sql,
-    [projectData.name, projectData.color, projectData.is_favourite, id],
-    (err, rows) => {
-      if (err) {
-        console.log(`"Error updating Projects for id ${id}"`);
-        callback(err,null)
-        return
-      }
-      if (rows.affectedRows === 0) {
-        console.log("No rows affected");
-        callback({kind:'notFound'},null)
-        return
-      }
-      console.log(`"Updated ${id} successfully in Database"`);
-      callback(null,rows)
-    }
-  );
+export const deleteOne = async (id) => {
+  const result = await db.delete(projects).where(eq(projects.id, id));
+  console.log(result);
+  return result;
 };
 
-exports.deleteOneProject = (id,callback)=>{
-    let sql = `DELETE FROM PROJECTS WHERE ID = ?`
-    connection.query(sql,[id],(err,result)=>{
-        if(err){
-            console.log(err.message);
-            console.log("Error deleting the project with ID",id);
-            callback(err,null)
-            return
-        }
-        if(result.affectedRows===0){
-            console.log("No rows affected");
-            callback({kind:'notFound'},null)
-            return
-        }
-        console.log(`"Project with ID ${id} deleted successfully"`);
-        callback(null,{message:`Project with ID ${id} deleted successfully` })
-    })
-}
+export const deletAll = async () => {
+  const result = await db.delete(projects);
+  return result;
+};
 
-exports.deleteAllProject = (callback)=>{
-    let sql = `DELETE FROM PROJECTS`
-    connection.query(sql,[],(err,result)=>{
-        if(err){
-            console.log(err.message);
-            console.log("Error deleting the project");
-            callback(err,null)
-            return
-        }
-        console.log(`"All Project successfully"`);
-        callback(null,{message:`All Project deleted successfully` })
-    })
-}
+export const updateIsFavourite = async (id, isFavouriteData) => {
+  const result = await db
+    .update(projects)
+    .set(isFavouriteData)
+    .where(eq(projects.id, id));
+  console.log(result);
+  return result;
+};
 
-exports.createTaskProject = (taskData,callback)=>{
-    let sql = `INSERT INTO TASKS
-                (CONTENT,DESCRIPTION,DUE_DATE,PROJECT_ID)
-                VALUES(?,?,?,?) `
-    connection.query(sql,[taskData.content,taskData.description,taskData.due_date,taskData.id],(err,rows)=>{
-        if(err){
-            console.log("Couldn't insert task into database");
-            console.log(err.message);
-            callback(err,null)
-            return
-        }
-        // if(rows.affectedRows===0){
-        //     console.log("");
-            
-        //     callback({kind:'notFound'},nul)
-        // }
-        console.log(rows);
-        console.log(`Inserted Task with id ${rows.insertId} into database successfully`);
-        callback(null,{id: rows.insertId, ...taskData})
-    })
-}
+export const getAllTasks = async () => {
+  const result = await db.select().from(tasks).limit(100);
+  console.log(result);
+  return result;
+};
 
-exports.editTaskProject = (taskData,callback)=>{
-    let sql = `UPDATE TASKS
-                SET CONTENT = ?,
-                    DESCRIPTION = ?,
-                    DUE_DATE = ?,
-                    IS_COMPLETED=?
-                    WHERE ID = ?
-                    AND 
-                    PROJECT_ID = ?`
-    connection.query(sql,[taskData.content,taskData.description,taskData.due_date,taskData.is_completed,taskData.task_id,taskData.project_id],(err,rows)=>{
-        console.log(rows);
-        if(err){
-            console.log("Error updating to database");
-            console.log(err.message);
-            return callback(err,null)
-        }
-        if(rows.affectedRows===0){
-            console.log("No rows affected");
-            return callback({kind:'notFound'},null)
-        }
-        console.log(`"Updated task with id ${rows.insertId} database successfully"`);
-        callback(null,{message:`Updated task with id ${rows.insertId} database successfully`})
-    })
-}
+export const getOneTasks = async (taskId) => {
+  const result = await db.select().from(tasks).where(eq(tasks.id, taskId));
+  console.log(result);
+  return result;
+};
 
+export const createTask = async (taskData) => {
+  const result = await db.insert(tasks).values(taskData).$returningId();
+  console.log(result);
+  return result;
+};
 
+export const editTask = async (taskId, taskData) => {
+  const result = await db
+    .update(tasks)
+    .set(taskData)
+    .where(eq(tasks.id, taskId));
+  console.log(result);
+  return result;
+};
 
+export const deleteTask = async (taskId) => {
+  const result = await db.delete(tasks).where(eq(tasks.id, taskId));
+  console.log(result);
+  return result;
+};
 
-exports.deleteTaskProject = (idData,callback)=>{
-    let sql = `DELETE FROM TASKS WHERE ID = ? AND PROJECT_ID = ?`
-    connection.query(sql,[idData.taskId,idData.project_id],(err,rows)=>{
-        if(err){
-            console.log(`"Error deleting the task with id ${taskId}"`);
-            console.log(err.message)  
-            return callback(err,null)
-        }
-        if(rows.affectedRows===0){
-            console.log("No rows affected");
-            return callback({kind:'notFound'},null)
-        }
-        console.log(`"Deleted task with id ${rows.insertId}"`);
-        callback(null,{message:`Deleted task with id ${rows.insertId}`})
-    })
-}
+export const getTaskByProjectId = async (projectId) => {
+  const result = await db
+    .select()
+    .from(tasks)
+    .where(eq(tasks.project_id, projectId));
+  console.log(result);
+  return result;
+};
 
-exports.updateIsFavouriteProject = (data,callback)=>{
-    let sql = `UPDATE PROJECTS
-                SET IS_FAVOURITE = ?
-                 WHERE ID = ? `
-    connection.query(sql,[data.is_favourite,data.id],(err,result)=>{
-      if(err){
-        console.log("Error updating is_favourite column in database");
-        console.log(err.message);
-        return callback(err,null)
-      }
-      if(result.affectedRows===0){
-        console.log("No rows affected");
-        return callback({kind:'notFound'},null)
-      }
-      console.log(`"Successfully updated isfavourite column with id ${data.id}"`);
-      callback(null,{message:`Successfully updated isfavourite column with id ${data.id}`})
-    })
-}
+const resultTask = {
+  id: tasks.id,
+  content: tasks.content,
+  description: tasks.description,
+  due_date: tasks.due_date,
+  is_completed: tasks.is_completed,
+  created_at: tasks.created_at,
+  project_id: tasks.project_id,
+};
 
-exports.getAllTasksProject = (callback)=>{
-  let sql = `SELECT * FROM TASKS`
-  connection.query(sql,[],(err,result)=>{
-    if(err){
-      return callback(err,null)
-    }
-    console.log("Task data retrieved from Database successfully");
-    callback(null,result)
-  })
-}
+export const getTaskByIsCompleted = async (userId, isCompleted) => {
+  const result = await db
+    .select(resultTask)
+    .from(tasks)
+    .innerJoin(projects, eq(projects.id, tasks.project_id))
+    .where(
+      and(eq(projects.user_id, userId), eq(tasks.is_completed, isCompleted))
+    );
 
-exports.taskByProjectId = (id,callback)=>{
-  let sql = `SELECT * FROM TASKS WHERE PROJECT_ID = ?`
+  console.log(result);
+  return result;
+};
 
-  connection.query(sql,[id],(err,result)=>{
-    if(err){
-      return callback(err,null)
-    }
-    if(result.affectedRows===0){
-      return callback({kind:'notFound'},null)
-    }
-    console.log(`"Tasks with project id ${id} retrieved successfully"`);
-    callback(null,{id, ...result})
-  })
-}
+export const getTaskByDueDate = async (userId, dueDate) => {
+  const result = await db
+    .select(resultTask)
+    .from(tasks)
+    .innerJoin(projects, eq(projects.id, tasks.project_id))
+    .where(and(eq(projects.user_id, userId), lt(tasks.due_date, dueDate)));
+  console.log(result);
+  return result;
+};
 
-exports.taskByIsCompleted = (is_completed, callback)=>{
-  let sql = `SELECT * FROM TASKS WHERE IS_COMPLETED = ?`
+export const getTaskByCreatedAt = async (userId, createdAt) => {
+  const result = await db
+    .select(tasks)
+    .from(tasks)
+    .innerJoin(projects, eq(projects.id, tasks.project_id))
+    .where(and(eq(projects.user_id, userId), eq(tasks.created_at, createdAt)));
+  console.log(result);
+  return result;
+};
 
-  connection.query(sql,[is_completed],(err,result)=>{
-    if(err){
-      return callback(err,null)
-    }
-    if(result.affectedRows===0){
-      return callback({kind:'notFound'},null)
-    }
-    console.log("Task data retrieved from Database successfully");
-    callback(null,result)
-
-  })
-}
-
-exports.taskByDueDate = (due_date,callback)=>{
-  let sql = `SELECT * FROM TASKS WHERE DUE_DATE = ?`
-  connection.query(sql,[due_date],(err,result)=>{
-    if(err){
-      return callback(err,null)
-    }
-    if(result.affectedRows===0){
-      return callback({kind:'notFound'},null)
-    }
-    console.log("Task data retrieved from Database successfully");
-    callback(null,result)
-  })
-}
+let taskData = {
+  content: "updated task content",
+  description: "updated description",
+  due_date: "2025-05-14",
+  is_completed: 0,
+  created_at: "2025-03-23",
+};

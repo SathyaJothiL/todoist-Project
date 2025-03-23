@@ -1,22 +1,23 @@
-const express = require('express')
-const router1 = express.Router()
-const projects = require('../controllers/projects')
-const tasks = require('../controllers/tasks')
+import express from "express";
+const routerTasks = express.Router();
+import * as tasks from "../controllers/tasks.js";
 
+routerTasks.get("/projectid/:id", tasks.getTaskByProjectId);
 
+routerTasks.get("/iscompleted", tasks.getTaskByIsCompleted);
 
-router1.get('/',tasks.getAllTasks)
+routerTasks.get("/duedate", tasks.getTaskByDueDate);
 
-router1.get('/projectid/:id',tasks.getTaskByProjectId)
+routerTasks.get("/createdat", tasks.getTaskByCreatedAt);
 
-router1.get('/iscompleted',tasks.getTaskByIsCompleted)
+routerTasks.get("/", tasks.getAllTasks);
 
-router1.get('/duedate',tasks.getTaskByDueDate)
+routerTasks.get("/:id", tasks.getOneTask);
 
-router1.get('/createdat',tasks.getTaskByCreatedAt)
+routerTasks.post("/", tasks.createTask);
 
+routerTasks.put("/:id", tasks.editTask);
 
-router.post('/:id/comments',createTaskComments)
-router.put('/:id/comments',updateTaskComments)
-router.delete('/:id/comments',deleteTaskComments)
-module.exports = router1
+routerTasks.delete("/:id", tasks.deleteTask);
+
+export default routerTasks;

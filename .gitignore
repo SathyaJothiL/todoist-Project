@@ -138,6 +138,8 @@ dist
 
 # Ignore custom file in the root directory
 something.js
+teacher.js
+
 
 # Ignore database file inside the models folder
 ./models/MYdb.db 

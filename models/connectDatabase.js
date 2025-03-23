@@ -1,18 +1,13 @@
-const mysql = require('mysql2')
+import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
 
-const connection = mysql.createConnection({
-    host:'localhost',
-    user:'joe',
-    password:'Apples3$',
-    database:'TODOIST'
-})
+const connection = await mysql.createConnection({
+  host: "localhost",
+  user: "joe",
+  password: "Apples3$",
+  database: "TODOIST",
+});
 
-connection.connect(err=>{
-    if(err){
-        console.log("Couln't connect to the Database");
-        return
-    }
-    console.log("Database connected"); 
-})
-module.exports = connection
+const db = drizzle({ client: connection });
 
+export default db;

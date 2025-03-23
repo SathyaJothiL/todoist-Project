@@ -1,10 +1,9 @@
-
-const express = require('express')
+import express from 'express'
+import * as projects from '../controllers/projects.js'
 const router = express.Router()
-const projects = require('../controllers/projects')
-const tasks = require('../controllers/tasks')
 
-router.post('/',projects.create)
+
+router.post('/',projects.createOne)
 
 router.get('/',projects.getAll)
 
@@ -16,16 +15,12 @@ router.delete('/:id',projects.deleteOne)
 
 router.delete('/',projects.deleteAll)
 
-router.post('/:id/tasks/',tasks.createTask)
+router.patch('/favourite/:id',projects.updateIsFavourite)
 
-router.put('/:id1/tasks/:id2',tasks.editTask)
+// router.get('/:id/comments',getProjectComments)
+// router.post('/:id/comments',createProjectComments)
+// router.put('/:id/comments',updateProjectComments)
+// router.delete('/:id/comments',deleteProjectComments)
+// module.exports = router
 
-router.delete('/:id1/tasks/:id2',tasks.deleteTask)
-
-router.patch('/:id/favourite',projects.updateIsFavourite)
-
-router.get('/:id/comments',getProjectComments)
-router.post('/:id/comments',createProjectComments)
-router.put('/:id/comments',updateProjectComments)
-router.delete('/:id/comments',deleteProjectComments)
-module.exports = router
+export default router

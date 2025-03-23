@@ -1,221 +1,184 @@
-const models = require("../models/model")
-const _ = require('lodash')
+import _ from "lodash";
+import * as models from "../models/model.js";
+import CustomError from "../middlewares/customError.js";
 
+export const getOne = (req, res, next) => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) {
+    return next(new CustomError(400, "Id parameter is Invalid"));
+  }
 
-
-exports.create = (req,res,next)=>{
-    if(validateProject(req.body).isEmpty===true){
-        const error = new Error("Send all Data")
-        error.status = 400
-        next(error)
-        return
-    }
-    if(validateProject(req.body).isInvalid===true){
-        const error = new Error("Send Correct Data Format")
-        error.status = 400
-        next(error)
-        return
-    
-    }
-    let projectData = {
-        name : req.body.name,
-        color: req.body.color,
-        is_favourite: req.body.is_favourite
-    }
-    models.createProject(projectData,(err,result)=>{
-        if(err){
-            if(err.kind==='notFound'){
-                const err = new Error("Error in database query")
-                err.status = 404
-                next(err)
-                return
-            }
-            next(err)
-            return
-        }
-        
-        res.status(201).json(result)
+  models
+    .getOne(id)
+    .then((data) => {
+      if (data.length === 0) {
+        return next(new CustomError(500, "Id does not exists"));
+      }
+      res.status(200).json(data);
     })
-}
+    .catch((err) => next(err));
+};
 
-exports.getAll = (req,res,next)=>{
-    models.getAllProject((err,result)=>{
-        if(err){
-            return next(err)
-        }else{
-            res.status(200).json(result)
-        }
+export const createOne = (req, res, next) => {
+  if (validateProject(req.body).isEmpty === true) {
+    return next(new CustomError(400, "Send all Data"));
+  }
+  if (validateProject(req.body).isInvalid === true) {
+    return next(new CustomError(400, "Send Correct Data Format"));
+  }
+
+  let projectData = {
+    name: req.body.name,
+    color: req.body.color,
+    is_favourite: req.body.isFavourite,
+    user_id: req.body.userId,
+  };
+  models
+    .createOne(projectData)
+    .then((data) => res.status(201).json(data))
+    .catch((err) => next(err));
+};
+
+export const getAll = (req, res, next) => {
+  models
+    .getAll(projectData)
+    .then((data) => {
+      res.status(200).json(data);
     })
+    .catch((err) => next(err));
+};
 
-}
+export const updateOne = (req, res, next) => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) {
+    return next(new CustomError(400, "Id parameter is Invalid"));
+  }
+  if (validateProject(req.body).isEmpty === true) {
+    return next(new CustomError(400, "Send all Data"));
+  }
+  if (validateProject(req.body).isInvalid === true) {
+    return next(new CustomError(400, "Send Correct Data Format"));
+  }
+  let projectData = {
+    name: req.body.name,
+    color: req.body.color,
+    is_favourite: req.body.isFavourite,
+  };
 
-exports.getOne =(req,res,next)=>{
-    const id = parseInt(req.params.id)
-    models.getOneProject(id, (err,result)=>{
-        if(err){
-            if(err.kind==='notFound'){
-                const error = new Error("No user with Id exists")
-                error.status = 404
-                next(error)
-                return
-            }
-            next(err)
-            return
-        }
-        res.send(result[0])
+  models
+    .updateOne(id, projectData)
+    .then((data) => {
+      if (!data[0].affectedRows === 0) {
+        return next(new CustomError(500, "Id does not exists"));
+      }
+      res.status(201).json(data);
     })
-}
+    .catch((err) => next(err));
+};
 
-exports.updateOne = (req,res,next)=>{
-    const id = parseInt(req.params.id)
-    if(isNaN(id)){
-        const error = new Error("Invalid ID")
-        error.status = 400
-        next(error)
-        return
-    }
-    if(validateProject(req.body).isEmpty===true){
-        const error = new Error("Send all Data")
-        error.status = 400
-        next(error)
-        return
-    }
-    if(validateProject(req.body).isInvalid===true){
-        const error = new Error("Send Correct Data Format")
-        error.status = 400
-        next(error)
-        return
-    
-    }
-    let projectData = {
-        name : req.body.name,
-        color: req.body.color,
-        is_favourite: req.body.is_favourite
-    }
+export const deleteOne = (req, res, next) => {
+  let id = parseInt(req.params.id);
+  if (isNaN(id)) {
+    return next(new CustomError(400, "Id parameter is Invalid"));
+  }
 
-    models.updateOneProject(id,projectData,(err,result)=>{
-        if(err){
-            if(err.kind==='notFound'){
-                const error = new Error(`Project with ${id} doesn't exists`);
-                error.status = 404;
-                next(error);
-                return
-            }
-            next(err)
-            return
-        }
-        res.status(201).send(result)
+  models
+    .deleteOne(id)
+    .then((data) => {
+      if (data[0].affectedRows === 0) {
+        return next(new CustomError(404, "Id does not exists"));
+      }
+      res.status(200).json(data);
     })
-}
+    .catch((err) => next(err));
+};
 
-exports.deleteOne = (req,res,next)=>{
-    let id = parseInt(req.params.id)
-    if(isNaN(id)){
-        const error = new Error("Invalid ID")
-        error.status = 400
-        next(error)
-        return
-    }
-    models.deleteOneProject(id,(err,result)=>{
-        if(err){
-            if(err.kind === 'notFound'){
-                const error = new Error(`Project with ${id} doesn't exists`);
-                error.status = 404;
-                next(error);
-                return
-            }
-            next(err)
-            return
-        }
-        res.status(200).json({message:result.message})
-        return
+export const deleteAll = (req, res, next) => {
+  models
+    .deleteAll(projectData)
+    .then((data) => {
+      res.status(200).json(data);
     })
-}
+    .catch((err) => next(err));
+};
 
-exports.deleteAll = (req,res,next)=>{
-    models.deleteAllProject((err,result)=>{
-        if(err){
-            next(err)
-            return
-        }
-        res.status(200).json({message:result.message})
-        return
+export const updateIsFavourite = (req, res, next) => {
+  let id = parseInt(req.params.id);
+  if (isNaN(id)) {
+    return next(new CustomError(400, "Id parameter is Invalid"));
+  }
+
+  if (req.body.isFavourite !== "0" && req.body.isFavourite !== "1") {
+    return next(new CustomError(400, "Invalid is_favourite input"));
+  }
+  const isFavouriteData = {
+    is_favourite: req.body.is_favourite === "1" ? 1 : 0,
+  };
+
+  models
+    .updateIsFavourite(id, isFavouriteData)
+    .then((data) => {
+      if (data[0].affectedRows === 0) {
+        return next(new CustomError(500, "Id does not exists"));
+      }
+      res.status(201).json(data);
     })
+    .catch((err) => next(err));
+};
+
+function validateProject(requestData) {
+  console.log(requestData);
+
+  let result = {
+    isInvalid: null,
+    isEmpty: null,
+  };
+  if (_.isEmpty(requestData)) {
+    result.isEmpty = true;
+    return result;
+  }
+  let keyList = ["name", "color", "isFavourite", "userId"];
+
+  for (let i of keyList) {
+    if (
+      requestData[i] === "" ||
+      requestData[i] === null ||
+      requestData[i] === undefined
+    ) {
+      console.log(i);
+      result.isEmpty = true;
+      return result;
+    }
+  }
+  if (typeof requestData.name !== "string") {
+    result.isInvalid = true;
+    return result;
+  }
+  if (typeof requestData.color !== "string") {
+    if (!requestData.match(/^[a-zA-Z]+$/)) {
+      result.isInvalid = true;
+      return result;
+    }
+    result.isInvalid = true;
+    return result;
+  }
+  if (requestData.isFavourite !== "0" && requestData.isFavourite !== "1") {
+    result.isInvalid = true;
+    return result;
+  }
+  if (isNaN(requestData.userId)) {
+    result.isInvalid = true;
+    return result;
+  }
+  return result;
 }
 
-
-exports.updateIsFavourite = (req,res,next)=>{
-    let id = parseInt(req.params.id)
-    if(isNaN(id)){
-        const error = new Error("Invalid ID")
-        error.status = 400
-        next(error)
-        return
-    }
-    console.log(req.body.is_favourite);
-    
-    if(req.body.is_favourite!== '0' && req.body.is_favourite!== '1'){
-        const error = new Error("Invalid is_favourite input")
-        error.status = 400
-        return next(error)
-    }
-
-    console.log(req.body);
-    
-    const data = {
-        id : id,
-        is_favourite: req.body.is_favourite === '1' ? 1 : 0
-    }
-    models.updateIsFavouriteProject(data,(err,result)=>{
-        if(err){
-            if(err.kind){
-                const err= new Error (`Project with ${id} doesn't exists`)
-                err.status = 404
-                return next(err)
-            }
-           return next(err)
-        }
-        res.status(201).json({message:result.message})
-    })
-}
-
-
-
-function validateProject(requestData){
-    console.log(requestData);
-    let result = {
-        isInvalid:null,
-        isEmpty : null,
-    }
-    if(_.isEmpty(requestData)){
-        result.isEmpty = true
-        return result
-    }
-    
-    for(let i in requestData){
-        if(i==='' || i===null || i ===undefined){
-            result.isEmpty = true
-            return result
-        }
-    }
-    if(typeof(requestData.name)!=='string'){
-        result.isInvalid = true
-        return result
-    }
-    if(typeof(requestData.color)!=='string'){
-        result.isInvalid = true
-        return result
-    }
-    if(requestData.is_favourite!=='0' && requestData.is_favourite!=='1'){
-        result.isInvalid = true
-        return result
-    }
-    return result
-}
-
-// function validateId(id){
-//     if(isNaN(id)){
-//         return false
-//     }
-//     return true
-// }
+// let projectData = {
+//     name: 'Updated project with id 11',
+//     color: 'yellow',
+//     is_favourite: 0,
+//     user_id: 1
+//   }
+//   const isFavouriteData = {
+//     is_favourite: '0'
+//   }
