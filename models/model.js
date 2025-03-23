@@ -10,11 +10,16 @@ import {
   tinyint,
   date,
 } from "drizzle-orm/mysql-core";
-import { users, tasks, projects } from "./tableDefinitions.js";
+import { users, tasks, projects, comments } from "./tableDefinitions.js";
 import e from "express";
 
 export const getOne = async (projectId) => {
-  const result = db.select().from(projects).where(eq(projects.id, projectId));
+  const result = await db
+    .select()
+    .from(projects)
+    .where(eq(projects.id, projectId));
+  console.log(result);
+
   return result;
 };
 
@@ -138,6 +143,36 @@ export const getTaskByCreatedAt = async (userId, createdAt) => {
   return result;
 };
 
+export const getComment = async (commentsId) => {
+  const result = await db
+    .select()
+    .from(comments)
+    .where(eq(comments.id, commentsId));
+  console.log(result);
+
+  return result;
+};
+
+export const createComment = async (commentsData) => {
+  const result = await db.insert(comments).values(commentsData).$returningId();
+  console.log(result);
+  return result;
+};
+
+export const updateComment = async (commentsId, commentsData) => {
+  const result = await db
+    .update(comments)
+    .set(commentsData)
+    .where(eq(comments.id, commentsId));
+  console.log(result);
+  return result;
+};
+
+export const deleteComment = async (commentsId) => {
+  const result = await db.delete(comments).where(eq(comments.id, commentsId));
+  console.log(result);
+  return result;
+};
 let taskData = {
   content: "updated task content",
   description: "updated description",
@@ -145,3 +180,5 @@ let taskData = {
   is_completed: 0,
   created_at: "2025-03-23",
 };
+
+getComment(700001);

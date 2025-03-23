@@ -22,7 +22,7 @@ const createUsers = () => {
     console.log("Posiible");
   });
 };
-createUsers()
+createUsers();
 
 const connection = require("./models/connectDatabase");
 const createProjects = () => {
@@ -62,11 +62,8 @@ const createProjects = () => {
   });
 };
 
+createProjects();
 
-createProjects()
-
-
-const connection = require("./models/connectDatabase");
 const createTasks = () => {
   const date = new Date();
 
@@ -77,7 +74,7 @@ const createTasks = () => {
     create_at,
     project_id;
   create_at = date.toISOString().split("T")[0];
-  curr_month = date.getMonth();
+  let curr_month = date.getMonth();
   date.setMonth(curr_month + 1);
   due_date = date.toISOString().split("T")[0];
   let m = 100000;
@@ -147,13 +144,73 @@ const createTasks = () => {
 
   let taskLists1 = taskLists.slice(0, 50);
   let taskLists2 = taskLists.slice(50, 100);
-  firstHalf(taskLists1);
-
+  firstHalf(taskLists2);
 };
 
+createTasks();
 
+const createComments = () => {
+  const date = new Date();
+  const postedAt = date.toISOString().split("T")[0];
 
-createTasks()
+  let arr = [],
+    commentsArr = [],
+    m = 100000;
+  for (let i = 50000; i <= 100000; i++) {
+    for (let j = 1; j <= 20; j++) {
+      if (Math.round(Math.random()) % 2 === 0) {
+        arr.push([`comment content ${i}`, postedAt, i, null]);
+      } else arr.push([`comment content ${i}`, postedAt, null, i]);
+      if (arr.length === m) {
+        commentsArr.push(arr);
+        arr = [];
+      }
+    }
+  }
+  console.log(commentsArr.length);
 
+  const firstHalf = (taskLists) => {
+    let sql3 = `INSERT INTO COMMENTS(CONTENT,POSTED_AT,PROJECT_ID,TASKS_ID) VALUES ?`;
+    connection.beginTransaction((err) => {
+      if (err) {
+        return connection.rollback(() => {
+          console.log(err.message);
+          return;
+        });
+      }
+      function batchInsert(index) {
+        if (index >= taskLists.length) {
+          return connection.commit((err) => {
+            if (err) {
+              return connection.rollback(() => {
+                console.log(err.message);
+                return;
+              });
+            }
+            console.log("Logged success!!");
+          });
+        }
+        connection.query(sql3, [taskLists[index]], (err, result) => {
+          if (err) {
+            return connection.rollback(() => {
+              console.log(err.message);
+              return;
+            });
+          } else {
+            console.log(`"Batch ${index} inserted "`);
+            console.log(result);
+            batchInsert(index + 1);
+          }
+        });
+      }
+      batchInsert(0);
+    });
+  };
 
-firstHalf(taskLists2);
+  let list1 = commentsArr.slice(0, 5);
+  let list2 = commentsArr.slice(5, 10);
+  firstHalf(list1);
+  firstHalf(list2);
+};
+
+createComments();
